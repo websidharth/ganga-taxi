@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RideStatus {
+  DRAFT
+  BOOKED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+enum PassengerType {
+  ADULT
+  CHILD
+  INFANT
+}
+
+enum LuggageSize {
+  SMALL
+  MEDIUM
+  LARGE
+  EXTRA_LARGE
+}
+
+enum ExpenseType {
+  FUEL
+  TOLL
+  PARKING
+  FOOD
+  MAINTENANCE
+  OTHER
+}
+
+model Driver {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  email     String?  @unique
+  licenseNo String   @unique
+  vehicleNo String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rides         Ride[]
+  dailyExpenses DriverDailyExpense[]
+}
+
+model Ride {
+  id               String     @id @default(cuid())
+  bookingReference String     @unique
+  driverId         String?
+  status           RideStatus @default(DRAFT)
+  rideDate         DateTime
+
+  estimatedKm Decimal  @db.Decimal(10, 2)
+  actualKm    Decimal? @db.Decimal(10, 2)
+
+  pickupAddress   String
+  pickupLatitude  Decimal? @db.Decimal(10, 7)
+  pickupLongitude Decimal? @db.Decimal(10, 7)
+
+  dropAddress   String
+  dropLatitude  Decimal? @db.Decimal(10, 7)
+  dropLongitude Decimal? @db.Decimal(10, 7)
+
+  routeNotes          String?
+  specialInstructions String?
+  fareAmount          Decimal? @db.Decimal(10, 2)
+
+  driver       Driver?       @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  passengers   Passenger[]
+  luggageItems LuggageItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([driverId])
+  @@index([rideDate])
+  @@index([status])
+}
+
+model Passenger {
+  id            String  @id @default(cuid())
+  rideId        String
+  fullName      String
+  phone         String?
+  adultCount    Int?    @default(0) @map("adult_count")
+  childCount    Int?    @default(0) @map("child_count")
+  infantCount   Int?    @default(0) @map("infant_count")
+  seatsRequired Int?    @default(1) @map("seats_required")
+  notes         String?
+  ride          Ride    @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  @@index([rideId])
+}
+
+model LuggageItem {
+  id                 String      @id @default(cuid())
+  rideId             String
+  itemName           String
+  luggageCount       Int         @default(0) @map("luggage_count") 
+  smallLuggageCount  Int         @default(0) @map("small_luggage_count")
+  largeLuggageCount  Int         @default(0) @map("large_luggage_count") 
+  notes              String?
+  ride               Ride        @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  @@index([rideId])
+}
+
+model DriverDailyExpense {
+  id          String      @id @default(cuid())
+  driverId    String
+  expenseDate DateTime
+  expenseType ExpenseType @default(OTHER)
+  title       String
+  description String?
+  amount      Decimal     @db.Decimal(10, 2)
+  receiptUrl  String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId])
+  @@index([expenseDate])
+  @@index([driverId, expenseDate])
+}

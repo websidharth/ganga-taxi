@@ -38,6 +38,12 @@ export default function LocationSearchInput({
       return;
     }
 
+    if (value && input === value.placeName) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = setTimeout(async () => {
@@ -89,7 +95,7 @@ export default function LocationSearchInput({
         activeRequestRef.current = null;
       }
     };
-  }, [input]);
+  }, [input, value]);
 
   return (
     <div className="relative">

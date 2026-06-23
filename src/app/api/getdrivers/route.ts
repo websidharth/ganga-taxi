@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { driverSchema } from '@/lib/validations';
-
- 
 
 export async function GET() {
   try {
@@ -11,7 +8,10 @@ export async function GET() {
         id: true,
         name: true,
         phone: true,
+        email: true,
+        licenseNo: true,
         vehicleNo: true,
+        createdAt: true,
       },
       orderBy: {
         name: 'asc',
@@ -24,5 +24,3 @@ export async function GET() {
     return NextResponse.json({ message: 'Failed to fetch drivers' }, { status: 500 });
   }
 }
-
-

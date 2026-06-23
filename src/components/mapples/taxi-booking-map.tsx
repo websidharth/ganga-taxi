@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Car, MapPin, Route as RouteIcon, Clock3 } from 'lucide-react';
-import Script from 'next/script';
-import type { RouteApiResponse, SelectedPlace } from '@/types/mappls';
 import { BookingDto } from '@/dto/booking-dto';
-import LocationSearchInput from './location-search-input';
+import type { RouteApiResponse, SelectedPlace } from '@/types/mappls';
+import { Car } from 'lucide-react';
+import Script from 'next/script';
+import { useEffect, useRef, useState } from 'react';
 import RideBookingPage from './book-rides';
- 
+import LocationSearchInput from './location-search-input';
+
 
 declare global {
   interface Window {
@@ -212,75 +212,16 @@ export default function TaxiBookingMap() {
     }
   }, [drop]);
 
-  const drawRoutes = async () => {
-    if (!pickup?.eLoc || !drop?.eLoc) return;
-
-    try {
-      setLoadingRoute(true);
+  useEffect(() => {
+    if (pickup && drop) {
+      drawRoute();
+    } else {
       clearRoute();
-
-      const response = await fetch(
-        `/api/mappls/route?from=${encodeURIComponent(pickup.eLoc)}&to=${encodeURIComponent(drop.eLoc)}`,
-        { cache: 'no-store' }
-      );
-
-      if (!response.ok) {
-        console.error('Route API failed:', response.status);
-        return;
-      }
-
-      const data: RouteApiResponse = await response.json();
-      const route = data?.routes?.[0];
-
-      if (!route) {
-        console.error('No route found:', data);
-        return;
-      }
-
-      setDistanceKm((route.distance / 1000).toFixed(2));
-      setDurationMin(Math.ceil(route.duration / 60).toString());
-
-      if (
-        mapRef.current &&
-        window.mappls &&
-        typeof route.geometry !== 'string' &&
-        route.geometry?.coordinates?.length
-      ) {
-        const geoJson = {
-          type: 'FeatureCollection',
-          features: [
-            {
-              type: 'Feature',
-              geometry: {
-                type: 'LineString',
-                coordinates: route.geometry.coordinates,
-              },
-              properties: {
-                stroke: '#2563eb',
-                'stroke-width': 5,
-                'stroke-opacity': 0.9,
-              },
-            },
-          ],
-        };
-
-        if (typeof window.mappls.addGeoJson === 'function') {
-          routeLayerRef.current = window.mappls.addGeoJson({
-            map: mapRef.current,
-            data: geoJson,
-            fitbounds: true,
-          });
-        } else {
-          console.error('mappls.addGeoJson is not available on this SDK');
-        }
-      }
-    } catch (error) {
-      console.error('Failed to draw route:', error);
-    } finally {
-      setLoadingRoute(false);
+      setBookingData(null);
+      setDistanceKm('');
+      setDurationMin('');
     }
-  };
-
+  }, [pickup, drop]);
 
   const drawRoute = async () => {
     if (!pickup?.eLoc || !drop?.eLoc) return;
@@ -319,8 +260,42 @@ export default function TaxiBookingMap() {
         routeNotes: 'Route calculated via Mappls',
       });
 
+      // 👉 DRAW ROUTE ON MAP
+      if (
+        mapRef.current &&
+        window.mappls &&
+        typeof route.geometry !== 'string' &&
+        route.geometry?.coordinates?.length
+      ) {
+        const geoJson = {
+          type: 'FeatureCollection',
+          features: [
+            {
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: route.geometry.coordinates,
+              },
+              properties: {
+                stroke: '#2563eb',
+                'stroke-width': 5,
+                'stroke-opacity': 0.9,
+              },
+            },
+          ],
+        };
+
+        if (typeof window.mappls.addGeoJson === 'function') {
+          routeLayerRef.current = window.mappls.addGeoJson({
+            map: mapRef.current,
+            data: geoJson,
+            fitbounds: true,
+          });
+        }
+      }
+
     } catch (error) {
-      console.error(error);
+      console.error('Failed to draw route:', error);
     } finally {
       setLoadingRoute(false);
     }
@@ -328,7 +303,7 @@ export default function TaxiBookingMap() {
 
 
   return (
-    <> 
+    <>
       <Script
         src={
           tokenKey
@@ -348,90 +323,89 @@ export default function TaxiBookingMap() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[420px_1fr]">
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-2xl bg-slate-900 p-3 text-white">
-              {/* <Car className="h-5 w-5" /> */}
+            <div className="rounded-2xl bg-orange-500 p-3 text-white shadow-md shadow-orange-500/20">
+              <Car className="h-5 w-5" />
             </div>
 
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">
-                Healthcare Appointment Booking
+              <h2 className="text-xl font-bold text-slate-900">
+                Ride Planner & Estimator
               </h2>
               <p className="text-sm text-slate-500">
-                Search two locations and view distance on map
+                Search locations to estimate distance & ETA
               </p>
             </div>
           </div>
 
           <div className="space-y-4">
             <LocationSearchInput
-              label="Location 1"
-              placeholder="Enter first location"
+              label="Pickup Location"
+              placeholder="Enter pickup address"
               value={pickup}
               onSelect={setPickup}
             />
 
             <LocationSearchInput
-              label="Location 2"
-              placeholder="Enter second location"
+              label="Drop Location"
+              placeholder="Enter destination address"
               value={drop}
               onSelect={setDrop}
             />
-
-            <button
-              type="button"
-              onClick={drawRoute}
-              disabled={!pickup || !drop || loadingRoute}
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loadingRoute ? 'Finding route...' : 'Show route'}
-            </button>
+            
+            {loadingRoute && (
+              <div className="text-center py-2 text-xs font-medium text-slate-500">
+                Calculating route and distance...
+              </div>
+            )}
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-slate-200 p-4">
-              <div className="mb-2 flex items-center gap-2 text-slate-500">
-                <RouteIcon className="h-4 w-4" />
-                <span className="text-xs uppercase tracking-wide">Distance</span>
-              </div>
-              <div className="text-lg font-semibold text-slate-900">
-                {distanceKm ? `${distanceKm} km` : '--'}
-              </div>
-            </div>
 
-            <div className="rounded-2xl border border-slate-200 p-4">
-              <div className="mb-2 flex items-center gap-2 text-slate-500">
-                <Clock3 className="h-4 w-4" />
-                <span className="text-xs uppercase tracking-wide">ETA</span>
-              </div>
-              <div className="text-lg font-semibold text-slate-900">
-                {durationMin ? `${durationMin} min` : '--'}
-              </div>
-            </div>
-          </div>
 
           <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-            <div className="flex items-start gap-2">
-              <MapPin className="mt-0.5 h-4 w-4" />
-              <div>
-                <div>
-                  <span className="font-medium text-slate-900">Pickup Location:</span>{' '}
-                  {pickup?.placeAddress || 'Not selected'}
+
+            <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-0 space-y-3 shadow-sm">
+              <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold tracking-wider">
+                <span>TRIP PREVIEW</span>
+                <span className="font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">
+                  Estimated:   {distanceKm ? `${distanceKm} km` : '--'}/ {durationMin ? `${durationMin} min` : '--'}
+                </span>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-start gap-2.5 text-sm">
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                  <div className="grid gap-0.5">
+                    <span className="text-[11px] text-muted-foreground font-semibold uppercase">Pickup Location</span>
+                    <span className="font-medium text-slate-800 line-clamp-2">
+                      {pickup?.placeAddress || 'Not selected'}
+                    </span>
+                  </div>
                 </div>
-                <div className="mt-2">
-                  <span className="font-medium text-slate-900">Drop Location:</span>{' '}
-                  {drop?.placeAddress || 'Not selected'}
+                <div className="flex items-start gap-2.5 text-sm border-t border-slate-100 pt-2.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                  <div className="grid gap-0.5">
+                    <span className="text-[11px] text-muted-foreground font-semibold uppercase">Drop Location</span>
+                    <span className="font-medium text-slate-800 line-clamp-2">
+                      {drop?.placeAddress || 'Not selected'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div> 
-          
+
+
+          </div>
+
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm min-h-[400px]">
           <div id="taxi-map" className="h-[500px] w-full" />
         </div>
 
-        {bookingData && <RideBookingPage bookingData={bookingData} />}
+        {bookingData && (
+          <div className="lg:col-span-2">
+            <RideBookingPage bookingData={bookingData} />
+          </div>
+        )}
 
       </div>
     </>

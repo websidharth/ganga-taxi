@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { ExpenseType } from '@prisma/client';
 
 export const passengerSchema = z.object({
   fullName: z.string().min(2, 'Passenger name is required').default('Passenger'),
@@ -46,7 +45,7 @@ export const driverSchema = z.object({
 export const driverExpenseSchema = z.object({
   driverId: z.string().min(1, 'Driver is required'),
   expenseDate: z.string().min(1, 'Expense date is required'),
-  expenseType: z.nativeEnum(ExpenseType).default(ExpenseType.OTHER),
+  expenseType: z.enum(['FUEL', 'TOLL', 'PARKING', 'MAINTENANCE', 'OTHER']).default('OTHER'),
   title: z.string().min(2, 'Title is required'),
   description: z.string().optional(),
   amount: z.coerce.number().positive('Amount must be greater than 0'),

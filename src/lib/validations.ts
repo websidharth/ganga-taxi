@@ -45,7 +45,7 @@ export const driverSchema = z.object({
 export const driverExpenseSchema = z.object({
   driverId: z.string().min(1, 'Driver is required'),
   expenseDate: z.string().min(1, 'Expense date is required'),
-  expenseType: z.enum(['FUEL', 'TOLL', 'PARKING', 'MAINTENANCE', 'OTHER']).default('OTHER'),
+  expenseType: z.enum(['FUEL', 'TOLL', 'PARKING', 'FOOD', 'MAINTENANCE', 'OTHER']).default('OTHER'),
   title: z.string().min(2, 'Title is required'),
   description: z.string().optional(),
   amount: z.coerce.number().positive('Amount must be greater than 0'),

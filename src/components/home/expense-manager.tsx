@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, IndianRupee, ReceiptText, UserRound, Plus, Trash2, Edit3, Sparkles, Filter, X, BarChart3, ListCollapse } from 'lucide-react';
+import { CalendarDays, IndianRupee, ReceiptText, UserRound, Plus, Trash2, Edit3, Sparkles, Filter, X, BarChart3, ListCollapse, Coffee, Wrench, Compass, Coins, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import StatCard from '@/components/common/stat-card';
 
 const EXPENSE_TYPES = ['FUEL', 'TOLL', 'PARKING', 'FOOD', 'MAINTENANCE', 'OTHER'] as const;
 
@@ -270,6 +271,53 @@ export default function ExpenseManager() {
 
     return { total, fuel, toll, parking, maintenance, food, other };
   }, [filteredExpenses]);
+
+  const isToday = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const today = new Date();
+    return (
+      d.getDate() === today.getDate() &&
+      d.getMonth() === today.getMonth() &&
+      d.getFullYear() === today.getFullYear()
+    );
+  };
+
+  const isCurrentMonth = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const today = new Date();
+    return (
+      d.getMonth() === today.getMonth() &&
+      d.getFullYear() === today.getFullYear()
+    );
+  };
+
+  const categoryStats = useMemo(() => {
+    const todayStats = { FUEL: 0, TOLL: 0, PARKING: 0, MAINTENANCE: 0, FOOD: 0, OTHER: 0 };
+    const monthStats = { FUEL: 0, TOLL: 0, PARKING: 0, MAINTENANCE: 0, FOOD: 0, OTHER: 0 };
+
+    expenses.forEach(e => {
+      const amt = Number(e.amount || 0);
+      const type = e.expenseType;
+      
+      if (isToday(e.expenseDate)) {
+        if (type in todayStats) {
+          todayStats[type] += amt;
+        } else {
+          todayStats.OTHER += amt;
+        }
+      }
+
+      if (isCurrentMonth(e.expenseDate)) {
+        if (type in monthStats) {
+          monthStats[type] += amt;
+        } else {
+          monthStats.OTHER += amt;
+        }
+      }
+    });
+
+    return { today: todayStats, month: monthStats };
+  }, [expenses]);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('en-IN', {
@@ -562,6 +610,139 @@ export default function ExpenseManager() {
                   <p className="text-[10px] text-slate-450 font-semibold mt-1">Highways, wear & tear repairs</p>
                 </CardContent>
               </Card>
+            </div>
+          </div>
+
+          {/* Today & Monthly Category Expenses Breakdowns Section */}
+          <div className="lg:col-span-3 space-y-6 pt-6 border-t border-slate-100/80">
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Today's Category Expenses</h3>
+              <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+                <StatCard
+                  title="Fuel"
+                  value={formatCurrency(categoryStats.today.FUEL)}
+                  icon={Coins}
+                  iconBgClass="bg-amber-50"
+                  iconTextClass="text-amber-600"
+                  iconBorderClass="border-amber-100/50"
+                  valueColorClass="text-amber-600"
+                  loading={isLoading}
+                />
+                <StatCard
+                  title="Toll"
+                  value={formatCurrency(categoryStats.today.TOLL)}
+                  icon={ReceiptText}
+                  iconBgClass="bg-blue-50"
+                  iconTextClass="text-blue-600"
+                  iconBorderClass="border-blue-100/50"
+                  valueColorClass="text-blue-600"
+                  loading={isLoading}
+                />
+                <StatCard
+                  title="Parking"
+                  value={formatCurrency(categoryStats.today.PARKING)}
+                  icon={Compass}
+                  iconBgClass="bg-emerald-50"
+                  iconTextClass="text-emerald-600"
+                  iconBorderClass="border-emerald-100/50"
+                  valueColorClass="text-emerald-600"
+                  loading={isLoading}
+                />
+                <StatCard
+                  title="Food"
+                  value={formatCurrency(categoryStats.today.FOOD)}
+                  icon={Coffee}
+                  iconBgClass="bg-indigo-50"
+                  iconTextClass="text-indigo-600"
+                  iconBorderClass="border-indigo-100/50"
+                  valueColorClass="text-indigo-600"
+                  loading={isLoading}
+                />
+                <StatCard
+                  title="Maintenance"
+                  value={formatCurrency(categoryStats.today.MAINTENANCE)}
+                  icon={Wrench}
+                  iconBgClass="bg-rose-50"
+                  iconTextClass="text-rose-600"
+                  iconBorderClass="border-rose-100/50"
+                  valueColorClass="text-rose-600"
+                  loading={isLoading}
+                />
+                <StatCard
+                  title="Other"
+                  value={formatCurrency(categoryStats.today.OTHER)}
+                  icon={HelpCircle}
+                  iconBgClass="bg-slate-50"
+                  iconTextClass="text-slate-600"
+                  iconBorderClass="border-slate-200/50"
+                  loading={isLoading}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-slate-100/80">
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Monthly Category Expenses</h3>
+              <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+                <StatCard
+                  title="Fuel"
+                  value={formatCurrency(categoryStats.month.FUEL)}
+                  icon={Coins}
+                  iconBgClass="bg-amber-50"
+                  iconTextClass="text-amber-600"
+                  iconBorderClass="border-amber-100/50"
+                  valueColorClass="text-amber-600"
+                  loading={isLoading}
+                />
+                <StatCard
+                  title="Toll"
+                  value={formatCurrency(categoryStats.month.TOLL)}
+                  icon={ReceiptText}
+                  iconBgClass="bg-blue-50"
+                  iconTextClass="text-blue-600"
+                  iconBorderClass="border-blue-100/50"
+                  valueColorClass="text-blue-600"
+                  loading={isLoading}
+                />
+                <StatCard
+                  title="Parking"
+                  value={formatCurrency(categoryStats.month.PARKING)}
+                  icon={Compass}
+                  iconBgClass="bg-emerald-50"
+                  iconTextClass="text-emerald-600"
+                  iconBorderClass="border-emerald-100/50"
+                  valueColorClass="text-emerald-600"
+                  loading={isLoading}
+                />
+                <StatCard
+                  title="Food"
+                  value={formatCurrency(categoryStats.month.FOOD)}
+                  icon={Coffee}
+                  iconBgClass="bg-indigo-50"
+                  iconTextClass="text-indigo-600"
+                  iconBorderClass="border-indigo-100/50"
+                  valueColorClass="text-indigo-600"
+                  loading={isLoading}
+                />
+                <StatCard
+                  title="Maintenance"
+                  value={formatCurrency(categoryStats.month.MAINTENANCE)}
+                  icon={Wrench}
+                  iconBgClass="bg-rose-50"
+                  iconTextClass="text-rose-600"
+                  iconBorderClass="border-rose-100/50"
+                  valueColorClass="text-rose-600"
+                  loading={isLoading}
+                />
+                <StatCard
+                  title="Other"
+                  value={formatCurrency(categoryStats.month.OTHER)}
+                  icon={HelpCircle}
+                  iconBgClass="bg-slate-50"
+                  iconTextClass="text-slate-600"
+                  iconBorderClass="border-slate-200/50"
+                  loading={isLoading}
+                />
+              </div>
             </div>
           </div>
         </div>

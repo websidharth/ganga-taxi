@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     const path = `${from};${to}`;
     const url =
       `https://route.mappls.com/route/direction/route_adv/driving/${encodeURIComponent(path)}` +
-      `?geometries=geojson&steps=false&overview=full&access_token=${encodeURIComponent(accessToken)}`;
+      `?geometries=geojson&steps=false&overview=full&alternatives=true&access_token=${encodeURIComponent(accessToken)}`;
 
     const response = await fetch(url, {
       method: 'GET',

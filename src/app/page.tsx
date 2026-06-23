@@ -1,15 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import StatCard from '@/components/common/stat-card';
 import TaxiBookingMap from "@/components/mapples/taxi-booking-map";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Car, Users, Calendar, IndianRupee, TrendingUp } from 'lucide-react';
+import { Calendar, CheckCircle2, ClipboardList, Coins, IndianRupee, Receipt, TrendingUp, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 type Stats = {
   totalRides: number;
   totalDrivers: number;
-  monthlyExpenses: number;
   todayRides: number;
+  completedRidesCount: number;
+  totalExpenses: number;
+  monthlyExpenses: number;
+  dailyExpenses: number;
+  totalIncome: number;
+  monthlyIncome: number;
+  dailyIncome: number;
 };
 
 export default function HomePage() {
@@ -38,95 +44,142 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
-            Operations Dashboard
-          </h1>
-          <p className="text-slate-500 mt-1">
-            Real-time taxi booking management, route pricing, and driver analytics.
-          </p>
-        </div>
-      </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid gap-5 grid-cols-2 lg:grid-cols-4">
-        <Card className="border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Total Rides
-            </CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600">
-              <Car className="h-4.5 w-4.5" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">
-              {loading ? '...' : stats?.totalRides ?? 0}
-            </div>
-            <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-emerald-500" />
-              All-time completed & draft rides
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Active Drivers
-            </CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-              <Users className="h-4.5 w-4.5" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">
-              {loading ? '...' : stats?.totalDrivers ?? 0}
-            </div>
-            <p className="text-[10px] text-slate-400 mt-1">Registered drivers on duty</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Today's Rides
-            </CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-              <Calendar className="h-4.5 w-4.5" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">
-              {loading ? '...' : stats?.todayRides ?? 0}
-            </div>
-            <p className="text-[10px] text-slate-400 mt-1">Booked for today</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Monthly Expenses
-            </CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600">
-              <IndianRupee className="h-4.5 w-4.5" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">
-              {loading ? '...' : formatCurrency(stats?.monthlyExpenses ?? 0)}
-            </div>
-            <p className="text-[10px] text-slate-400 mt-1">Fuel, tolls, parking this month</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Booking Form & Map Interface */}
       <div className="pt-2">
         <TaxiBookingMap />
+      </div>
+      {/* KPI Cards Grid */}
+      <div className="grid gap-5 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <StatCard
+          title="Daily Income"
+          value={formatCurrency(stats?.dailyIncome ?? 0)}
+          icon={IndianRupee}
+          iconBgClass="bg-green-50"
+          iconTextClass="text-green-600"
+          iconBorderClass="border-green-100/50"
+          valueColorClass="text-green-600"
+          loading={loading}
+        />
+        <StatCard
+          title="Daily Expenses"
+          value={formatCurrency(stats?.dailyExpenses ?? 0)}
+          icon={IndianRupee}
+          iconBgClass="bg-red-50"
+          iconTextClass="text-red-600"
+          iconBorderClass="border-red-100/50"
+          valueColorClass="text-red-600"
+          loading={loading}
+        />
+        <StatCard
+          title="Today's Rides"
+          value={stats?.todayRides ?? 0}
+          subtext="rides"
+          icon={Calendar}
+          iconBgClass="bg-orange-50"
+          iconTextClass="text-orange-600"
+          iconBorderClass="border-orange-100/50"
+          valueColorClass="text-orange-600"
+          loading={loading}
+        />
+
+        <StatCard
+          title="Monthly Expenses"
+          value={formatCurrency(stats?.monthlyExpenses ?? 0)}
+          icon={IndianRupee}
+          iconBgClass="bg-pink-50"
+          iconTextClass="text-pink-600"
+          iconBorderClass="border-pink-100/50"
+          valueColorClass="text-pink-600"
+          loading={loading}
+        />
+        <StatCard
+          title="Monthly Income"
+          value={formatCurrency(stats?.monthlyIncome ?? 0)}
+          icon={TrendingUp}
+          iconBgClass="bg-teal-50"
+          iconTextClass="text-teal-600"
+          iconBorderClass="border-teal-100/50"
+          valueColorClass="text-teal-600"
+          loading={loading}
+        />
+        <StatCard
+          title="Total Income"
+          value={formatCurrency(stats?.totalIncome ?? 0)}
+          icon={Coins}
+          iconBgClass="bg-emerald-50"
+          iconTextClass="text-emerald-600"
+          iconBorderClass="border-emerald-100/50"
+          valueColorClass="text-emerald-600"
+          loading={loading}
+        />
+        <StatCard
+          title="Total Expenses"
+          value={formatCurrency(stats?.totalExpenses ?? 0)}
+          icon={Receipt}
+          iconBgClass="bg-rose-50"
+          iconTextClass="text-rose-600"
+          iconBorderClass="border-rose-100/50"
+          valueColorClass="text-rose-600"
+          loading={loading}
+        />
+
+
+        {/* Bookings Count */}
+        <StatCard
+          title="Bookings Count"
+          value={stats?.totalRides ?? 0}
+          subtext="rides"
+          icon={ClipboardList}
+          iconBgClass="bg-indigo-50"
+          iconTextClass="text-indigo-600"
+          iconBorderClass="border-indigo-100/50"
+          loading={loading}
+        />
+
+        {/* Completed Rides */}
+        <StatCard
+          title="Completed Rides"
+          value={stats?.completedRidesCount ?? 0}
+          subtext="rides"
+          icon={CheckCircle2}
+          iconBgClass="bg-blue-50"
+          iconTextClass="text-blue-600"
+          iconBorderClass="border-blue-100/50"
+          valueColorClass="text-blue-600"
+          loading={loading}
+        />
+
+        {/* Today's Rides */}
+
+
+        {/* Active Drivers */}
+        <StatCard
+          title="Active Drivers"
+          value={stats?.totalDrivers ?? 0}
+          subtext="active"
+          icon={Users}
+          iconBgClass="bg-cyan-50"
+          iconTextClass="text-cyan-600"
+          iconBorderClass="border-cyan-100/50"
+          loading={loading}
+        />
+
+        {/* Total Income */}
+
+        {/* Monthly Income */}
+
+
+        {/* Daily Income */}
+
+
+        {/* Total Expenses */}
+
+
+        {/* Monthly Expenses */}
+
+
+        {/* Daily Expenses */}
+
       </div>
     </div>
   );

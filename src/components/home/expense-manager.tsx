@@ -409,85 +409,85 @@ export default function ExpenseManager() {
       {activeTab === 'dashboard' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Quick Record Form */}
-          <Card className="border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] h-fit lg:col-span-1">
-            <CardHeader className="bg-slate-50/50 border-b border-slate-100">
-              <CardTitle className="text-lg flex items-center gap-2">
+          <Card className="border border-slate-100 shadow-[0_4px_25px_rgba(0,0,0,0.015)] rounded-3xl bg-white overflow-hidden h-fit lg:col-span-1">
+            <CardHeader className="bg-slate-50/40 border-b border-slate-100 py-4 px-6">
+              <CardTitle className="text-lg flex items-center gap-2 font-bold text-slate-900">
                 <Sparkles className="h-4.5 w-4.5 text-orange-500" />
                 Record Daily Expense
               </CardTitle>
-              <CardDescription>File a new fuel charge, toll ticket, parking fee, etc.</CardDescription>
+              <CardDescription className="text-xs text-slate-500">File a new fuel charge, toll ticket, parking fee, etc.</CardDescription>
             </CardHeader>
-            <CardContent className="pt-6">
+            <CardContent className="p-6">
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Assign Driver *</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Assign Driver *</label>
                   <Select
                     value={formData.driverId}
                     onValueChange={(val) => setFormData(prev => ({ ...prev, driverId: val }))}
                   >
-                    <SelectTrigger className="rounded-xl">
+                    <SelectTrigger className="rounded-xl bg-slate-50/50 border-slate-200/60 font-semibold text-slate-800 focus:bg-white py-5">
                       <SelectValue placeholder="Choose driver" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-xl">
                       {drivers.map(d => (
-                        <SelectItem key={d.id} value={d.id}>{d.name} ({d.vehicleNo})</SelectItem>
+                        <SelectItem key={d.id} value={d.id} className="font-semibold text-slate-700">{d.name} ({d.vehicleNo})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Expense Date *</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Expense Date *</label>
                   <Input
                     type="date"
                     value={formData.expenseDate}
                     onChange={(e) => setFormData(prev => ({ ...prev, expenseDate: e.target.value }))}
-                    className="rounded-xl"
+                    className="rounded-xl bg-slate-50/50 border-slate-200/60 font-semibold text-slate-800 focus:bg-white py-5"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Category *</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Category *</label>
                   <Select
                     value={formData.expenseType}
                     onValueChange={(val) => setFormData(prev => ({ ...prev, expenseType: val as ExpenseType }))}
                   >
-                    <SelectTrigger className="rounded-xl">
+                    <SelectTrigger className="rounded-xl bg-slate-50/50 border-slate-200/60 font-semibold text-slate-800 focus:bg-white py-5">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-xl">
                       {EXPENSE_TYPES.map(t => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                        <SelectItem key={t} value={t} className="font-semibold text-slate-700">{t}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Amount (INR) *</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Amount (INR) *</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-semibold text-sm">₹</span>
                     <Input
                       type="number"
                       placeholder="0.00"
                       value={formData.amount}
                       onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                      className="pl-7 rounded-xl"
+                      className="pl-8 rounded-xl bg-slate-50/50 border-slate-200/60 font-semibold text-slate-800 focus:bg-white py-5"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Notes / Remarks</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Notes / Remarks</label>
                   <Input
                     placeholder="Short description note (e.g. 15L Fuel)"
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="rounded-xl"
+                    className="rounded-xl bg-slate-50/50 border-slate-200/60 font-semibold text-slate-800 focus:bg-white py-5"
                   />
                 </div>
 
-                <Button type="submit" className="w-full rounded-xl bg-slate-950 text-white hover:bg-slate-800" disabled={isSubmitting}>
+                <Button type="submit" className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-5 shadow-md shadow-indigo-100 hover:shadow-lg transition-all" disabled={isSubmitting}>
                   {isSubmitting ? 'Recording...' : 'Record Expense'}
                 </Button>
               </form>
@@ -497,27 +497,25 @@ export default function ExpenseManager() {
           {/* Quick Analytics & Summaries */}
           <div className="lg:col-span-2 space-y-6">
             {/* Filter controls inside Dashboard for current view */}
-            <Card className="border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
-              <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-base">Track Analytics Breakdown</CardTitle>
-                  <CardDescription>Summary of category spends according to current filters.</CardDescription>
-                </div>
+            <Card className="border border-slate-100 shadow-[0_4px_25px_rgba(0,0,0,0.015)] rounded-3xl bg-white overflow-hidden">
+              <CardHeader className="py-4 px-6 border-b border-slate-100">
+                <CardTitle className="text-base font-bold text-slate-900">Track Analytics Breakdown</CardTitle>
+                <CardDescription className="text-xs text-slate-500">Summary of category spends according to current filters.</CardDescription>
               </CardHeader>
-              <CardContent className="pt-6 space-y-6">
+              <CardContent className="p-6 space-y-6">
                 {/* Aggregate KPI */}
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-850 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-md">
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 text-white flex flex-row items-center justify-between gap-3 shadow-lg">
                   <div>
-                    <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider block">Total Spent (Filtered)</span>
-                    <h3 className="text-3xl font-extrabold tracking-tight mt-1">{formatCurrency(stats.total)}</h3>
+                    <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider block leading-none">Total Spent (Filtered)</span>
+                    <h3 className="text-3xl font-black tracking-tight mt-2 text-white">{formatCurrency(stats.total)}</h3>
                   </div>
-                  <Badge className="bg-orange-500/20 text-orange-400 hover:bg-orange-500/20 border-orange-500/30 text-xs py-1 px-3 self-start sm:self-auto">
+                  <Badge className="bg-orange-500/20 text-orange-400 border border-orange-500/30 text-xs py-1 px-3.5 rounded-xl font-bold shrink-0">
                     {filteredExpenses.length} Records
                   </Badge>
                 </div>
 
                 {/* Category Grid Progress */}
-                <div className="space-y-4">
+                <div className="space-y-4 pt-2">
                   {[
                     { label: 'Fuel', amount: stats.fuel, color: 'bg-amber-500' },
                     { label: 'Toll', amount: stats.toll, color: 'bg-blue-500' },
@@ -528,10 +526,10 @@ export default function ExpenseManager() {
                   ].map((cat) => {
                     const percent = stats.total > 0 ? (cat.amount / stats.total) * 100 : 0;
                     return (
-                      <div key={cat.label} className="space-y-1">
+                      <div key={cat.label} className="space-y-2">
                         <div className="flex justify-between text-xs font-semibold text-slate-700">
-                          <span>{cat.label}</span>
-                          <span>{formatCurrency(cat.amount)} ({percent.toFixed(0)}%)</span>
+                          <span className="font-semibold text-slate-600">{cat.label}</span>
+                          <span className="font-bold text-slate-900">{formatCurrency(cat.amount)} ({percent.toFixed(0)}%)</span>
                         </div>
                         <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                           <div className={`h-full ${cat.color} rounded-full transition-all duration-500`} style={{ width: `${percent}%` }} />
@@ -545,23 +543,23 @@ export default function ExpenseManager() {
 
             {/* Monthly and Daily summaries breakdown */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Card className="border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Fuel Allocation</CardTitle>
+              <Card className="border border-slate-100 shadow-[0_4px_25px_rgba(0,0,0,0.015)] rounded-2xl bg-white overflow-hidden">
+                <CardHeader className="pb-2 pt-4 px-5">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Fuel Allocation</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-xl font-bold text-slate-900">{formatCurrency(stats.fuel)}</div>
-                  <p className="text-xs text-slate-400 mt-1">Refills, CNG, diesel receipts</p>
+                <CardContent className="pb-4 px-5">
+                  <div className="text-2xl font-black text-slate-900 tracking-tight">{formatCurrency(stats.fuel)}</div>
+                  <p className="text-[10px] text-slate-450 font-semibold mt-1">Refills, CNG, diesel receipts</p>
                 </CardContent>
               </Card>
 
-              <Card className="border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Tolls & Maintenance</CardTitle>
+              <Card className="border border-slate-100 shadow-[0_4px_25px_rgba(0,0,0,0.015)] rounded-2xl bg-white overflow-hidden">
+                <CardHeader className="pb-2 pt-4 px-5">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tolls & Maintenance</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-xl font-bold text-slate-900">{formatCurrency(stats.toll + stats.maintenance)}</div>
-                  <p className="text-xs text-slate-400 mt-1">Highways, wear & tear repairs</p>
+                <CardContent className="pb-4 px-5">
+                  <div className="text-2xl font-black text-slate-900 tracking-tight">{formatCurrency(stats.toll + stats.maintenance)}</div>
+                  <p className="text-[10px] text-slate-450 font-semibold mt-1">Highways, wear & tear repairs</p>
                 </CardContent>
               </Card>
             </div>

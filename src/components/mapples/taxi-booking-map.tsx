@@ -2,7 +2,7 @@
 
 import { BookingDto } from '@/dto/booking-dto';
 import type { RouteApiResponse, SelectedPlace } from '@/types/mappls';
-import { Car } from 'lucide-react';
+import { ArrowUpDown, Car } from 'lucide-react';
 import Script from 'next/script';
 import { useEffect, useRef, useState } from 'react';
 import RideBookingPage from './book-rides';
@@ -24,12 +24,20 @@ export default function TaxiBookingMap() {
   const currentLocationMarkerRef = useRef<any>(null);
   const pickupMarkerRef = useRef<any>(null);
   const dropMarkerRef = useRef<any>(null);
-  const routeLayerRef = useRef<any>(null);
+  const routeLayersRef = useRef<any[]>([]);
   const isMapInitializedRef = useRef(false);
   const didTryCurrentLocationRef = useRef(false);
 
   const [pickup, setPickup] = useState<SelectedPlace | null>(null);
   const [drop, setDrop] = useState<SelectedPlace | null>(null);
+  const [routes, setRoutes] = useState<any[]>([]);
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
+
+  const handleSwap = () => {
+    const temp = pickup;
+    setPickup(drop);
+    setDrop(temp);
+  };
   const [distanceKm, setDistanceKm] = useState('');
   const [durationMin, setDurationMin] = useState('');
   const [loadingRoute, setLoadingRoute] = useState(false);
@@ -134,21 +142,22 @@ export default function TaxiBookingMap() {
   }, [sdkLoaded]);
 
   const clearRoute = () => {
-    if (!window.mappls || !mapRef.current || !routeLayerRef.current) return;
-
-    try {
-      if (typeof window.mappls.remove === 'function') {
-        window.mappls.remove({
-          map: mapRef.current,
-          layer: routeLayerRef.current,
-        });
-      } else if (typeof routeLayerRef.current.remove === 'function') {
-        routeLayerRef.current.remove();
-      }
-    } catch (error) {
-      console.error('Failed to clear route:', error);
-    } finally {
-      routeLayerRef.current = null;
+    if (routeLayersRef.current.length > 0) {
+      routeLayersRef.current.forEach((layer) => {
+        try {
+          if (typeof layer.remove === 'function') {
+            layer.remove();
+          } else if (window.mappls && typeof window.mappls.remove === 'function') {
+            window.mappls.remove({
+              map: mapRef.current,
+              layer: layer,
+            });
+          }
+        } catch (e) {
+          console.error('Failed to remove layer:', e);
+        }
+      });
+      routeLayersRef.current = [];
     }
   };
 
@@ -166,24 +175,21 @@ export default function TaxiBookingMap() {
   const addMarker = (type: 'pickup' | 'drop', place: SelectedPlace) => {
     if (!mapRef.current || !window.mappls) return;
 
-    const coords = getPlaceCoordinates(place);
-    if (!coords) return;
-
-    const markerPosition = {
-      lat: coords.lat,
-      lng: coords.lng,
-    };
-
-    if (type === 'pickup') {
-      removeMarker(pickupMarkerRef);
-    } else {
-      removeMarker(dropMarkerRef);
-    }
-
     try {
+      if (type === 'pickup') {
+        removeMarker(pickupMarkerRef);
+      } else {
+        removeMarker(dropMarkerRef);
+      }
+
+      const coords = getPlaceCoordinates(place);
+      const position = coords ? { lat: coords.lat, lng: coords.lng } : place.eLoc;
+
+      if (!position) return;
+
       const marker = new window.mappls.Marker({
         map: mapRef.current,
-        position: markerPosition,
+        position: position,
       });
 
       if (type === 'pickup') {
@@ -192,7 +198,7 @@ export default function TaxiBookingMap() {
         dropMarkerRef.current = marker;
       }
 
-      if (typeof mapRef.current.setCenter === 'function') {
+      if (coords && typeof mapRef.current.setCenter === 'function') {
         mapRef.current.setCenter([coords.lng, coords.lat]);
       }
     } catch (error) {
@@ -217,6 +223,7 @@ export default function TaxiBookingMap() {
       drawRoute();
     } else {
       clearRoute();
+      setRoutes([]);
       setBookingData(null);
       setDistanceKm('');
       setDurationMin('');
@@ -235,63 +242,34 @@ export default function TaxiBookingMap() {
       );
 
       const data: RouteApiResponse = await response.json();
-      const route = data?.routes?.[0];
+      const fetchedRoutes = data?.routes || [];
 
-      if (!route) return;
+      setSelectedRouteIndex(0);
+      setRoutes(fetchedRoutes);
 
-      const distance = (route.distance / 1000).toFixed(2);
-
-      setDistanceKm(distance);
-      setDurationMin(Math.ceil(route.duration / 60).toString());
-
-      // 👉 GET coordinates
-      const pickupCoords = getPlaceCoordinates(pickup);
-      const dropCoords = getPlaceCoordinates(drop);
-
-      // 👉 SET BOOKING DATA
-      setBookingData({
-        estimatedKm: distance,
-        pickupAddress: pickup.placeAddress || '',
-        pickupLatitude: pickupCoords?.lat?.toString() || '',
-        pickupLongitude: pickupCoords?.lng?.toString() || '',
-        dropAddress: drop.placeAddress || '',
-        dropLatitude: dropCoords?.lat?.toString() || '',
-        dropLongitude: dropCoords?.lng?.toString() || '',
-        routeNotes: 'Route calculated via Mappls',
-      });
-
-      // 👉 DRAW ROUTE ON MAP
-      if (
-        mapRef.current &&
-        window.mappls &&
-        typeof route.geometry !== 'string' &&
-        route.geometry?.coordinates?.length
-      ) {
-        const geoJson = {
-          type: 'FeatureCollection',
-          features: [
-            {
-              type: 'Feature',
-              geometry: {
-                type: 'LineString',
-                coordinates: route.geometry.coordinates,
-              },
-              properties: {
-                stroke: '#2563eb',
-                'stroke-width': 5,
-                'stroke-opacity': 0.9,
-              },
-            },
-          ],
-        };
-
-        if (typeof window.mappls.addGeoJson === 'function') {
-          routeLayerRef.current = window.mappls.addGeoJson({
-            map: mapRef.current,
-            data: geoJson,
-            fitbounds: true,
+      const allCoordinates: { lat: number; lng: number }[] = [];
+      fetchedRoutes.forEach((r) => {
+        if (typeof r.geometry !== 'string' && r.geometry?.coordinates?.length) {
+          r.geometry.coordinates.forEach((coord: [number, number]) => {
+            allCoordinates.push({ lat: coord[1], lng: coord[0] });
           });
         }
+      });
+
+      if (typeof mapRef.current.fitBounds === 'function' && allCoordinates.length > 0) {
+        const lats = allCoordinates.map((p) => p.lat);
+        const lngs = allCoordinates.map((p) => p.lng);
+        const minLat = Math.min(...lats);
+        const maxLat = Math.max(...lats);
+        const minLng = Math.min(...lngs);
+        const maxLng = Math.max(...lngs);
+
+        mapRef.current.fitBounds([
+          [minLng, minLat],
+          [maxLng, maxLat]
+        ], {
+          padding: 60
+        });
       }
 
     } catch (error) {
@@ -300,6 +278,127 @@ export default function TaxiBookingMap() {
       setLoadingRoute(false);
     }
   };
+
+  useEffect(() => {
+    if (routes.length === 0) return;
+
+    const selectedRoute = routes[selectedRouteIndex];
+    if (!selectedRoute) return;
+
+    const distance = (selectedRoute.distance / 1000).toFixed(2);
+    setDistanceKm(distance);
+    setDurationMin(Math.ceil(selectedRoute.duration / 60).toString());
+
+    const pickupCoords = getPlaceCoordinates(pickup!);
+    const dropCoords = getPlaceCoordinates(drop!);
+
+    const formatFullAddress = (place: SelectedPlace) => {
+      if (!place) return '';
+      const name = place.placeName || '';
+      const address = place.placeAddress || '';
+      if (!name) return address;
+      if (!address) return name;
+      if (address.toLowerCase().includes(name.toLowerCase())) {
+        return address;
+      }
+      return `${name}, ${address}`;
+    };
+
+    setBookingData({
+      estimatedKm: distance,
+      pickupAddress: formatFullAddress(pickup!),
+      pickupLatitude: pickupCoords?.lat?.toString() || '',
+      pickupLongitude: pickupCoords?.lng?.toString() || '',
+      dropAddress: formatFullAddress(drop!),
+      dropLatitude: dropCoords?.lat?.toString() || '',
+      dropLongitude: dropCoords?.lng?.toString() || '',
+      routeNotes: 'Route calculated via Mappls',
+    });
+
+    clearRoute();
+
+    const createPolyline = (options: any) => {
+      if (typeof window.mappls.Polyline === 'function') {
+        return new window.mappls.Polyline(options);
+      } else if (typeof window.mappls.polyline === 'function') {
+        return new window.mappls.polyline(options);
+      }
+      return null;
+    };
+
+    if (typeof window.mappls.Polyline === 'function' || typeof window.mappls.polyline === 'function') {
+      // Draw non-selected routes first so they sit in the background
+      routes.forEach((r, idx) => {
+        if (idx === selectedRouteIndex) return;
+
+        if (typeof r.geometry !== 'string' && r.geometry?.coordinates?.length) {
+          const paths = r.geometry.coordinates.map((coord: [number, number]) => ({
+            lat: coord[1],
+            lng: coord[0],
+          }));
+
+          const altPolyline = createPolyline({
+            map: mapRef.current,
+            path: paths,
+            strokeColor: '#94a3b8',
+            strokeWeight: 6,
+            strokeWidth: 6,
+            strokeOpacity: 0.75,
+            opacity: 0.75,
+          });
+
+          if (altPolyline) {
+            routeLayersRef.current.push(altPolyline);
+            // Click to select this route
+            altPolyline.addListener('click', () => {
+              setSelectedRouteIndex(idx);
+            });
+          }
+        }
+      });
+
+      // Draw the selected route on top with blue glow highlight
+      const r = routes[selectedRouteIndex];
+      if (typeof r.geometry !== 'string' && r.geometry?.coordinates?.length) {
+        const paths = r.geometry.coordinates.map((coord: [number, number]) => ({
+          lat: coord[1],
+          lng: coord[0],
+        }));
+
+        const outerPolyline = createPolyline({
+          map: mapRef.current,
+          path: paths,
+          strokeColor: '#3b82f6',
+          strokeWeight: 10,
+          strokeWidth: 10,
+          strokeOpacity: 0.4,
+          opacity: 0.4,
+        });
+        if (outerPolyline) {
+          routeLayersRef.current.push(outerPolyline);
+          outerPolyline.addListener('click', () => {
+            setSelectedRouteIndex(selectedRouteIndex);
+          });
+        }
+
+        const innerPolyline = createPolyline({
+          map: mapRef.current,
+          path: paths,
+          strokeColor: '#1d4ed8',
+          strokeWeight: 6,
+          strokeWidth: 6,
+          strokeOpacity: 0.95,
+          opacity: 0.95,
+        });
+        if (innerPolyline) {
+          routeLayersRef.current.push(innerPolyline);
+          innerPolyline.addListener('click', () => {
+            setSelectedRouteIndex(selectedRouteIndex);
+          });
+        }
+      }
+    }
+  }, [routes, selectedRouteIndex]);
 
 
   return (
@@ -321,8 +420,8 @@ export default function TaxiBookingMap() {
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[420px_1fr]">
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-5 flex items-center gap-3">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+          <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-orange-500 p-3 text-white shadow-md shadow-orange-500/20">
               <Car className="h-5 w-5" />
             </div>
@@ -337,77 +436,94 @@ export default function TaxiBookingMap() {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="relative flex flex-col gap-3">
             <LocationSearchInput
-              label="Pickup Location"
+              label=""
               placeholder="Enter pickup address"
               value={pickup}
               onSelect={setPickup}
             />
 
             <LocationSearchInput
-              label="Drop Location"
+              label=""
               placeholder="Enter destination address"
               value={drop}
               onSelect={setDrop}
             />
-            
-            {loadingRoute && (
-              <div className="text-center py-2 text-xs font-medium text-slate-500">
-                Calculating route and distance...
-              </div>
-            )}
+
+            <button
+              type="button"
+              onClick={handleSwap}
+              className="absolute right-4 top-[50%] -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 shadow-md transition-all focus:outline-none active:scale-95 z-10"
+              title="Swap Locations"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+            </button>
           </div>
 
+          {loadingRoute && (
+            <div className="text-center py-2 text-xs font-medium text-slate-500 animate-pulse">
+              Calculating route and distance...
+            </div>
+          )}
 
+          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm min-h-[350px]">
+            <div id="taxi-map" className="h-[300px] w-full" />
+          </div>
+        </div>
 
-          <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-
-            <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-0 space-y-3 shadow-sm">
-              <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold tracking-wider">
-                <span>TRIP PREVIEW</span>
-                <span className="font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">
-                  Estimated:   {distanceKm ? `${distanceKm} km` : '--'}/ {durationMin ? `${durationMin} min` : '--'}
-                </span>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-start gap-2.5 text-sm">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                  <div className="grid gap-0.5">
-                    <span className="text-[11px] text-muted-foreground font-semibold uppercase">Pickup Location</span>
-                    <span className="font-medium text-slate-800 line-clamp-2">
-                      {pickup?.placeAddress || 'Not selected'}
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 space-y-4">
+            <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold tracking-wider pb-2 border-b border-slate-100">
+              <span className="text-slate-400 font-bold uppercase">TRIP PREVIEW</span>
+              <span className="font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100/80">
+                Estimated: {distanceKm ? `${distanceKm} km` : '--'} / {durationMin ? `${durationMin} min` : '--'}
+              </span>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 text-sm">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0 animate-pulse" />
+                <div className="grid gap-0.5">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pickup Location</span>
+                  <span className="font-semibold text-slate-900 line-clamp-1">
+                    {pickup?.placeName || 'Not selected'}
+                  </span>
+                  {pickup?.placeAddress && pickup.placeAddress !== pickup.placeName && (
+                    <span className="text-xs text-slate-500 line-clamp-2 leading-tight">
+                      {pickup.placeAddress}
                     </span>
-                  </div>
+                  )}
                 </div>
-                <div className="flex items-start gap-2.5 text-sm border-t border-slate-100 pt-2.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                  <div className="grid gap-0.5">
-                    <span className="text-[11px] text-muted-foreground font-semibold uppercase">Drop Location</span>
-                    <span className="font-medium text-slate-800 line-clamp-2">
-                      {drop?.placeAddress || 'Not selected'}
+              </div>
+              <div className="flex items-start gap-3 text-sm border-t border-slate-100/80 pt-3">
+                <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                <div className="grid gap-0.5">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Drop Location</span>
+                  <span className="font-semibold text-slate-900 line-clamp-1">
+                    {drop?.placeName || 'Not selected'}
+                  </span>
+                  {drop?.placeAddress && drop.placeAddress !== drop.placeName && (
+                    <span className="text-xs text-slate-500 line-clamp-2 leading-tight">
+                      {drop.placeAddress}
                     </span>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
-
-
           </div>
 
+          {bookingData && (
+            <div className="border-t border-slate-100 pt-4">
+              <RideBookingPage bookingData={bookingData} />
+            </div>
+          )}
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm min-h-[400px]">
-          <div id="taxi-map" className="h-[500px] w-full" />
-        </div>
 
-        {bookingData && (
-          <div className="lg:col-span-2">
-            <RideBookingPage bookingData={bookingData} />
-          </div>
-        )}
 
-      </div>
+
+
+      </div >
     </>
   );
 }

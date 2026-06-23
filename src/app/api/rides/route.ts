@@ -173,3 +173,46 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const json = await request.json();
+    const { id, status } = json;
+
+    if (!id || !status) {
+      return NextResponse.json(
+        { message: 'ID and Status are required' },
+        { status: 400 }
+      );
+    }
+
+    const validStatuses = ['DRAFT', 'BOOKED', 'STARTED', 'COMPLETED', 'CANCELLED'];
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json(
+        { message: 'Invalid status value' },
+        { status: 400 }
+      );
+    }
+
+    const updateData: any = { status };
+    if (json.fareAmount !== undefined && json.fareAmount !== null && json.fareAmount !== '') {
+      const parsedFare = Number(json.fareAmount);
+      if (!isNaN(parsedFare)) {
+        updateData.fareAmount = parsedFare;
+      }
+    }
+
+    const updatedRide = await prisma.ride.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return NextResponse.json({
+      message: 'Ride status updated successfully',
+      data: updatedRide,
+    });
+  } catch (error) {
+    console.error('Update status error:', error);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+  }
+}

@@ -107,7 +107,7 @@ export default function LocationSearchInput({
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm outline-none transition focus:border-slate-900"
+        className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-4 pr-12 text-sm outline-none transition focus:border-slate-900"
       />
 
       {(loading || items.length > 0) && (
